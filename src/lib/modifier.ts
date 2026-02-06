@@ -52,7 +52,7 @@ export async function modifyWorkflows(
     }
 
     cleanWorkflowDocument(doc);
-    await writeFile(workflow.path, doc.toString());
+    await writeFile(workflow.path, doc.toString({ lineWidth: 100 }));
   }
 }
 
