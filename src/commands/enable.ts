@@ -1,3 +1,4 @@
+import { execSync } from "child_process";
 import { Command } from "commander";
 import { parseWorkflows } from "../lib/parser.js";
 import { buildDependencyGraph } from "../lib/graph.js";
@@ -77,9 +78,14 @@ export const enableCommand = new Command("enable")
       workflowsToRun.add(workflow);
     }
 
+    const currentBranch = execSync("git rev-parse --abbrev-ref HEAD", {
+      encoding: "utf-8",
+    }).trim();
+    const testBranch = `${currentBranch}-test-ci`;
+
     console.log("To test:");
     if (needsPRContext) {
-      console.log("  git checkout -b test/my-feature");
+      console.log(`  git checkout -b ${testBranch}`);
       console.log("  git add .github/");
       console.log('  git commit -m "test: enable selected jobs"');
       console.log("  gh pr create --draft");
