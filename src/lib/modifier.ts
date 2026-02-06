@@ -51,6 +51,7 @@ export async function modifyWorkflows(
       }
     }
 
+    cleanWorkflowDocument(doc);
     await writeFile(workflow.path, doc.toString());
   }
 }
@@ -92,5 +93,34 @@ function addIfFalse(jobNode: YAMLMap): void {
     // Add if: false at the beginning
     const ifPair = new Pair(new Scalar("if"), new Scalar(false));
     jobNode.items.unshift(ifPair);
+  }
+}
+
+// Valid top-level GitHub Actions workflow properties
+const VALID_WORKFLOW_KEYS = new Set([
+  "name",
+  "on",
+  "env",
+  "concurrency",
+  "defaults",
+  "jobs",
+  "permissions",
+]);
+
+function cleanWorkflowDocument(doc: ReturnType<typeof parseDocument>): void {
+  if (!(doc.contents instanceof YAMLMap)) return;
+
+  // Remove any invalid top-level properties
+  const invalidItems: number[] = [];
+  for (let i = 0; i < doc.contents.items.length; i++) {
+    const key = String((doc.contents.items[i].key as Scalar).value);
+    if (!VALID_WORKFLOW_KEYS.has(key)) {
+      invalidItems.push(i);
+    }
+  }
+
+  // Remove in reverse order to maintain indices
+  for (let i = invalidItems.length - 1; i >= 0; i--) {
+    doc.contents.items.splice(invalidItems[i], 1);
   }
 }
