@@ -83,24 +83,25 @@ export const enableCommand = new Command("enable")
     }).trim();
     const testBranch = `${currentBranch}-test-ci`;
 
-    console.log("To test:");
-    if (needsPRContext) {
-      const jobList = Array.from(enabledJobs).sort().join(", ");
-      const commitMsg = `### DO NOT MERGE
+    const jobList = Array.from(enabledJobs).sort().join(", ");
+    const commitMsg = `### DO NOT MERGE
 
 Test CI for jobs: ${jobList}
 
 Created by \`pipeline enable\` from [${currentBranch}](../tree/${currentBranch})`;
 
-      console.log(`  git checkout -b ${testBranch}`);
-      console.log("  git add .github/");
-      console.log(
-        `  git commit -m $'${commitMsg.replace(/'/g, "\\'").replace(/\n/g, "\\n")}'`,
-      );
+    console.log("To test:");
+    console.log(`  git checkout -b ${testBranch}`);
+    console.log("  git add .github/");
+    console.log(
+      `  git commit -m $'${commitMsg.replace(/'/g, "\\'").replace(/\n/g, "\\n")}'`,
+    );
+    console.log("  git push -u origin HEAD");
+
+    if (needsPRContext) {
       console.log(
         "  REPO_ID=$(git remote get-url origin | sed 's/.*github.com[:\\/]\\(.*\\).git/\\1/')",
       );
-      console.log("  git push -u origin HEAD");
       console.log("  gh pr create --fill --repo $REPO_ID");
     } else {
       const workflowFile = Array.from(workflowsToRun)[0] + ".yml";
