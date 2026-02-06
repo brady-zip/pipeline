@@ -73,7 +73,8 @@ jq --arg v "$NEW_VERSION" '.version = $v' package.json > "$TMP" && mv "$TMP" pac
 npm run build
 
 # Commit the version bump
-git add package.json dist/
+git add package.json
+git add -f dist/
 git commit -m "chore: bump to v$NEW_VERSION [skip-version]"
 
 echo "auto-version: bumped $CURRENT_VERSION -> $NEW_VERSION ($BUMP_TYPE)"
