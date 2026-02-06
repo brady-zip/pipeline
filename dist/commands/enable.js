@@ -89,6 +89,6 @@ Created by \`pipeline enable\` from [${currentBranch}](../tree/${currentBranch})
     }
     else {
         const workflowFile = Array.from(workflowsToRun)[0] + ".yml";
-        console.log(`  gh workflow run ${workflowFile} --ref ${currentBranch} && sleep 2 && gh run watch $(gh run list --workflow=${workflowFile} --limit 1 --json databaseId -q '.[0].databaseId') && osascript -e 'display notification "Workflow complete" with title "pipeline"'`);
+        console.log(`  gh workflow run ${workflowFile} --ref ${testBranch} && sleep 2 && gh run watch $(gh run list --workflow=${workflowFile} --limit 1 --json databaseId -q '.[0].databaseId') && osascript -e 'display notification "Workflow complete" with title "pipeline"'`);
     }
 });
