@@ -1,0 +1,25 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "rules": {
+    "eqeqeq": "error",
+    "no-console": "off",
+    "no-unused-vars": "error",
+    "no-const-assign": "error",
+    "no-debugger": "error",
+    "no-duplicate-case": "error",
+    "no-empty": "error",
+    "no-extra-boolean-cast": "error",
+    "no-irregular-whitespace": "error",
+    "no-loss-of-precision": "error",
+    "no-sparse-arrays": "error",
+    "no-unsafe-finally": "error",
+    "no-unsafe-negation": "error",
+    "no-unused-labels": "error",
+    "no-useless-catch": "error",
+    "no-useless-escape": "error",
+    "no-with": "error",
+    "require-yield": "error",
+    "use-isnan": "error",
+    "valid-typeof": "error"
+  }
+}
