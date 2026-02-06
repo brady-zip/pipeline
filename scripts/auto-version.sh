@@ -69,8 +69,11 @@ esac
 TMP=$(mktemp)
 jq --arg v "$NEW_VERSION" '.version = $v' package.json > "$TMP" && mv "$TMP" package.json
 
+# Rebuild with new version
+npm run build
+
 # Commit the version bump
-git add package.json
+git add package.json dist/
 git commit -m "chore: bump to v$NEW_VERSION [skip-version]"
 
 echo "auto-version: bumped $CURRENT_VERSION -> $NEW_VERSION ($BUMP_TYPE)"
