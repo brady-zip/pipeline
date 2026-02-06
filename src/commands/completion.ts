@@ -3,11 +3,22 @@ import { Command } from "commander";
 const BASH_COMPLETION = `
 _pipeline_completions() {
     local cur="\${COMP_WORDS[COMP_CWORD]}"
-    local prev="\${COMP_WORDS[COMP_CWORD-1]}"
 
     case "\${COMP_WORDS[1]}" in
         enable)
-            COMPREPLY=( $(compgen -W "$(pipeline list 2>/dev/null)" -- "$cur") )
+            # Get full token handling : in COMP_WORDBREAKS
+            local token="\${COMP_LINE:0:$COMP_POINT}"
+            token="\${token##* }"
+
+            local all_jobs=$(pipeline list 2>/dev/null)
+            if [[ "$token" == *:* ]]; then
+                COMPREPLY=( $(compgen -W "$all_jobs" -- "$token") )
+                __ltrim_colon_completions "$token" 2>/dev/null
+            else
+                compopt -o nospace 2>/dev/null
+                local workflows=$(echo "$all_jobs" | cut -d: -f1 | sort -u)
+                COMPREPLY=( $(compgen -W "$(for w in $workflows; do echo "\${w}:"; done)" -- "$token") )
+            fi
             return 0
             ;;
         completion)
@@ -45,7 +56,14 @@ _pipeline() {
         args)
             case $line[1] in
                 enable)
-                    _values "jobs" \${(f)"$(pipeline list 2>/dev/null)"}
+                    if compset -P '*:'; then
+                        local workflow="\${IPREFIX%:}"
+                        local jobs=(\${(f)"$(pipeline list 2>/dev/null | grep "^\${workflow}:" | cut -d: -f2-)"})
+                        _describe "job" jobs
+                    else
+                        local workflows=(\${(f)"$(pipeline list 2>/dev/null | cut -d: -f1 | sort -u)"})
+                        _describe "workflow" workflows -S ':'
+                    fi
                     ;;
                 completion)
                     _values "shell" bash zsh fish
@@ -65,7 +83,9 @@ complete -c pipeline -n "__fish_use_subcommand" -a "enable" -d "Enable jobs and 
 complete -c pipeline -n "__fish_use_subcommand" -a "list" -d "List all jobs"
 complete -c pipeline -n "__fish_use_subcommand" -a "completion" -d "Generate shell completion script"
 
-complete -c pipeline -n "__fish_seen_subcommand_from enable" -a "(pipeline list 2>/dev/null)"
+# Workflow-then-job completion: show workflows first, full keys after :
+complete -c pipeline -n "__fish_seen_subcommand_from enable; and not string match -q '*:*' (commandline -ct)" -a "(pipeline list 2>/dev/null | string replace -r ':.*' '' | sort -u)" -f
+complete -c pipeline -n "__fish_seen_subcommand_from enable; and string match -q '*:*' (commandline -ct)" -a "(pipeline list 2>/dev/null)" -f
 complete -c pipeline -n "__fish_seen_subcommand_from completion" -a "bash zsh fish"
 `.trim();
 
