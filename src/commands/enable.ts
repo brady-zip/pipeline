@@ -87,7 +87,7 @@ export const enableCommand = new Command("enable")
     if (needsPRContext) {
       console.log(`  git checkout -b ${testBranch}`);
       console.log("  git add .github/");
-      console.log('  git commit -m "test: enable selected jobs"');
+      console.log('  git commit -m "test ci"');
       console.log("  gh pr create --draft");
     } else {
       const workflowFile = Array.from(workflowsToRun)[0] + ".yml";
