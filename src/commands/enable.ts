@@ -109,4 +109,10 @@ Created by \`pipeline enable\` from [${currentBranch}](../tree/${currentBranch})
         `  gh workflow run ${workflowFile} --ref ${testBranch} && sleep 2 && gh run watch $(gh run list --workflow=${workflowFile} --limit 1 --json databaseId -q '.[0].databaseId') && osascript -e 'display notification "Workflow complete" with title "pipeline"'`,
       );
     }
+
+    console.log("");
+    console.log("To cleanup:");
+    console.log(
+      `  git checkout ${currentBranch} && git branch -D ${testBranch} && git push origin --delete ${testBranch}`,
+    );
   });
