@@ -3,6 +3,7 @@ import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import { Command } from "commander";
 import { enableCommand } from "./commands/enable.js";
+import { updateCommand } from "./commands/update.js";
 import { disableCommand } from "./commands/disable.js";
 import { listCommand } from "./commands/list.js";
 import { completionCommand } from "./commands/completion.js";
@@ -14,6 +15,7 @@ program
     .description("CLI tool to selectively enable GitHub Actions jobs for isolated testing")
     .version(pkg.version);
 program.addCommand(enableCommand);
+program.addCommand(updateCommand);
 program.addCommand(disableCommand);
 program.addCommand(listCommand);
 program.addCommand(completionCommand);
