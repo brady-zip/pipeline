@@ -149,7 +149,9 @@ export const enableCommand = new Command("enable")
 Test CI for jobs: ${jobList}
 
 Created by \`pipeline enable\` from [${branchState.parentBranch}](../tree/${branchState.parentBranch})`;
-    const escapedCommitMsg = commitMsg.replace(/'/g, "\\'").replace(/\n/g, "\\n");
+    const escapedCommitMsg = commitMsg
+        .replace(/'/g, "\\'")
+        .replace(/\n/g, "\\n");
     console.log("To test:");
     if (branchState.isTestBranch) {
         // Re-enable mode: amend existing commit
