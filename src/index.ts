@@ -3,6 +3,7 @@ import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import { Command } from "commander";
 import { enableCommand } from "./commands/enable.js";
+import { disableCommand } from "./commands/disable.js";
 import { listCommand } from "./commands/list.js";
 import { completionCommand } from "./commands/completion.js";
 
@@ -21,6 +22,7 @@ program
   .version(pkg.version);
 
 program.addCommand(enableCommand);
+program.addCommand(disableCommand);
 program.addCommand(listCommand);
 program.addCommand(completionCommand);
 
