@@ -5,7 +5,7 @@ export declare function detectBranchState(currentBranch: string): {
     parentBranch: string;
     testBranch: string;
 };
-export declare function findInstrumentedCommit(): string | null;
-export declare function hoistInstrumentedCommit(commitHash: string): void;
-export declare function getInstrumentedJobs(commitHash: string): string[];
-export declare function hasNonInstrumentedChanges(parentBranch: string, instrumentedCommit: string): boolean;
+export declare function findInstrumentedCommit(): Promise<string | null>;
+export declare function hoistInstrumentedCommit(commitHash: string): Promise<void>;
+export declare function getInstrumentedJobs(commitHash: string): Promise<string[]>;
+export declare function hasNonInstrumentedChanges(parentBranch: string, instrumentedCommit: string): Promise<boolean>;

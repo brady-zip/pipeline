@@ -1,4 +1,4 @@
-import { execSync } from "child_process";
+import { $ } from "bun";
 import { Command } from "commander";
 import { parseWorkflows } from "../lib/parser.js";
 import { buildDependencyGraph } from "../lib/graph.js";
@@ -10,9 +10,7 @@ export const updateCommand = new Command("update")
     .description("Update instrumentation after rebase")
     .option("--keep-labels", "Preserve label-based conditions")
     .action(async (options) => {
-    const currentBranch = execSync("git rev-parse --abbrev-ref HEAD", {
-        encoding: "utf-8",
-    }).trim();
+    const currentBranch = (await $ `git rev-parse --abbrev-ref HEAD`.text()).trim();
     // Must be on a test branch
     if (!currentBranch.endsWith(TEST_BRANCH_SUFFIX)) {
         console.error("Error: Not on a test branch.");
@@ -21,29 +19,25 @@ export const updateCommand = new Command("update")
     }
     const branchState = detectBranchState(currentBranch);
     // Find instrumented commit
-    let instrumentedCommit = findInstrumentedCommit();
+    let instrumentedCommit = await findInstrumentedCommit();
     if (!instrumentedCommit) {
         console.error("Error: No instrumented commit found.");
         console.error("       Use 'pipeline enable' to create instrumentation.");
         process.exit(1);
     }
     // Parse jobs from the instrumented commit
-    const jobs = getInstrumentedJobs(instrumentedCommit);
+    const jobs = await getInstrumentedJobs(instrumentedCommit);
     if (jobs.length === 0) {
         console.error("Error: Could not parse jobs from instrumented commit.");
         process.exit(1);
     }
     console.log(`Found instrumented jobs: ${jobs.join(", ")}`);
     // Hoist instrumented commit to HEAD if needed
-    const headHash = execSync("git rev-parse HEAD", {
-        encoding: "utf-8",
-    }).trim();
+    const headHash = (await $ `git rev-parse HEAD`.text()).trim();
     if (instrumentedCommit !== headHash) {
         console.log("Hoisting instrumented commit to HEAD...");
-        hoistInstrumentedCommit(instrumentedCommit);
-        instrumentedCommit = execSync("git rev-parse HEAD", {
-            encoding: "utf-8",
-        }).trim();
+        await hoistInstrumentedCommit(instrumentedCommit);
+        instrumentedCommit = (await $ `git rev-parse HEAD`.text()).trim();
     }
     // Parse workflows and build graph
     const workflows = await parseWorkflows();

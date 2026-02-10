@@ -1,4 +1,4 @@
-import { execSync } from "child_process";
+import { $ } from "bun";
 import { Command } from "commander";
 import { parseWorkflows } from "../lib/parser.js";
 import { buildDependencyGraph } from "../lib/graph.js";
@@ -14,9 +14,9 @@ import {
 export const showCommand = new Command("show")
   .description("Show test and cleanup steps for current instrumentation")
   .action(async () => {
-    const currentBranch = execSync("git rev-parse --abbrev-ref HEAD", {
-      encoding: "utf-8",
-    }).trim();
+    const currentBranch = (
+      await $`git rev-parse --abbrev-ref HEAD`.text()
+    ).trim();
 
     // Must be on a test branch
     if (!currentBranch.endsWith(TEST_BRANCH_SUFFIX)) {
@@ -30,7 +30,7 @@ export const showCommand = new Command("show")
     const branchState = detectBranchState(currentBranch);
 
     // Find instrumented commit
-    const instrumentedCommit = findInstrumentedCommit();
+    const instrumentedCommit = await findInstrumentedCommit();
 
     if (!instrumentedCommit) {
       console.error("Error: No instrumented commit found.");
@@ -39,7 +39,7 @@ export const showCommand = new Command("show")
     }
 
     // Parse jobs from the instrumented commit
-    const jobs = getInstrumentedJobs(instrumentedCommit);
+    const jobs = await getInstrumentedJobs(instrumentedCommit);
 
     if (jobs.length === 0) {
       console.error("Error: Could not parse jobs from instrumented commit.");

@@ -1,4 +1,4 @@
-import { execSync } from "child_process";
+import { $ } from "bun";
 import { Command } from "commander";
 import { parseWorkflows } from "../lib/parser.js";
 import { buildDependencyGraph } from "../lib/graph.js";
@@ -24,9 +24,9 @@ export const enableCommand = new Command("enable")
       }
     }
 
-    const currentBranch = execSync("git rev-parse --abbrev-ref HEAD", {
-      encoding: "utf-8",
-    }).trim();
+    const currentBranch = (
+      await $`git rev-parse --abbrev-ref HEAD`.text()
+    ).trim();
 
     // Block if already on a test branch
     if (currentBranch.endsWith(TEST_BRANCH_SUFFIX)) {
@@ -37,7 +37,7 @@ export const enableCommand = new Command("enable")
 
     // Check if already instrumented
     const testBranch = `${currentBranch}${TEST_BRANCH_SUFFIX}`;
-    const instrumentedCommit = findInstrumentedCommit();
+    const instrumentedCommit = await findInstrumentedCommit();
 
     if (instrumentedCommit) {
       console.error("Error: Already instrumented.");
