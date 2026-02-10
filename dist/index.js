@@ -5,6 +5,7 @@ import { Command } from "commander";
 import { enableCommand } from "./commands/enable.js";
 import { updateCommand } from "./commands/update.js";
 import { showCommand } from "./commands/show.js";
+import { cleanupCommand } from "./commands/cleanup.js";
 import { disableCommand } from "./commands/disable.js";
 import { listCommand } from "./commands/list.js";
 import { completionCommand } from "./commands/completion.js";
@@ -18,6 +19,7 @@ program
 program.addCommand(enableCommand);
 program.addCommand(updateCommand);
 program.addCommand(showCommand);
+program.addCommand(cleanupCommand);
 program.addCommand(disableCommand);
 program.addCommand(listCommand);
 program.addCommand(completionCommand);

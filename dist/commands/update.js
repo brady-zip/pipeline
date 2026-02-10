@@ -5,7 +5,7 @@ import { buildDependencyGraph } from "../lib/graph.js";
 import { modifyWorkflows } from "../lib/modifier.js";
 import { detectPRContext } from "../lib/detector.js";
 import { parseJobKey } from "../types.js";
-import { TEST_BRANCH_SUFFIX, detectBranchState, findInstrumentedCommit, getInstrumentedJobs, hoistInstrumentedCommit, hasNonInstrumentedChanges, } from "../lib/branch.js";
+import { TEST_BRANCH_SUFFIX, detectBranchState, findInstrumentedCommit, getInstrumentedJobs, hoistInstrumentedCommit, } from "../lib/branch.js";
 export const updateCommand = new Command("update")
     .description("Update instrumentation after rebase")
     .option("--keep-labels", "Preserve label-based conditions")
@@ -106,21 +106,5 @@ Created by \`pipeline enable\` from [${branchState.parentBranch}](../tree/${bran
     }
     console.log("");
     console.log("To cleanup:");
-    const hasChanges = hasNonInstrumentedChanges(branchState.parentBranch, instrumentedCommit);
-    if (hasChanges) {
-        // Squash non-instrumented changes back to parent, excluding .github/
-        console.log(`  git checkout ${branchState.parentBranch} && ` +
-            `git merge --squash ${branchState.testBranch} && ` +
-            `git reset HEAD -- .github/ && ` +
-            `git checkout -- .github/ && ` +
-            `git commit -m "changes from ${branchState.testBranch}" && ` +
-            `git branch -D ${branchState.testBranch} && ` +
-            `git push origin --delete ${branchState.testBranch}`);
-    }
-    else {
-        // No changes to squash, just delete
-        console.log(`  git checkout ${branchState.parentBranch} && ` +
-            `git branch -D ${branchState.testBranch} && ` +
-            `git push origin --delete ${branchState.testBranch}`);
-    }
+    console.log("  pipeline cleanup");
 });
