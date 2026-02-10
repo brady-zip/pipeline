@@ -132,7 +132,5 @@ Created by \`pipeline enable\` from [${currentBranch}](../tree/${currentBranch})
 
     console.log("");
     console.log("To cleanup:");
-    console.log(
-      `  git checkout ${currentBranch} && git branch -D ${testBranch} && git push origin --delete ${testBranch}`,
-    );
+    console.log("  pipeline cleanup");
   });

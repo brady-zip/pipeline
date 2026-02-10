@@ -9,7 +9,6 @@ import {
   detectBranchState,
   findInstrumentedCommit,
   getInstrumentedJobs,
-  hasNonInstrumentedChanges,
 } from "../lib/branch.js";
 
 export const showCommand = new Command("show")
@@ -103,29 +102,5 @@ Created by \`pipeline enable\` from [${branchState.parentBranch}](../tree/${bran
 
     console.log("");
     console.log("To cleanup:");
-
-    const hasChanges = hasNonInstrumentedChanges(
-      branchState.parentBranch,
-      instrumentedCommit,
-    );
-
-    if (hasChanges) {
-      // Squash non-instrumented changes back to parent, excluding .github/
-      console.log(
-        `  git checkout ${branchState.parentBranch} && ` +
-          `git merge --squash ${branchState.testBranch} && ` +
-          `git reset HEAD -- .github/ && ` +
-          `git checkout -- .github/ && ` +
-          `git commit -m "changes from ${branchState.testBranch}" && ` +
-          `git branch -D ${branchState.testBranch} && ` +
-          `git push origin --delete ${branchState.testBranch}`,
-      );
-    } else {
-      // No changes to squash, just delete
-      console.log(
-        `  git checkout ${branchState.parentBranch} && ` +
-          `git branch -D ${branchState.testBranch} && ` +
-          `git push origin --delete ${branchState.testBranch}`,
-      );
-    }
+    console.log("  pipeline cleanup");
   });
