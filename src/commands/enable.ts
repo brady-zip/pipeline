@@ -122,7 +122,9 @@ Created by \`pipeline enable\` from [${currentBranch}](../tree/${currentBranch})
       console.log(
         "  REPO_ID=$(git remote get-url origin | sed 's/.*github.com[:\\/]\\(.*\\).git/\\1/')",
       );
-      console.log("  gh pr create --fill --repo $REPO_ID");
+      console.log(
+        '  gh pr create --title "$(git log -1 --format=%s)" --body "$(git log -1 --format=%b)" --repo $REPO_ID',
+      );
     } else {
       const workflowFile = Array.from(workflowsToRun)[0] + ".yml";
       console.log(
