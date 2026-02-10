@@ -7,7 +7,7 @@
     "pipeline": "./bin/pipeline"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "bun build src/index.ts --compile --outfile bin/pipeline",
     "dev": "tsc --watch",
     "prepare": "husky",
     "typecheck": "tsc --noEmit"

@@ -1,6 +1,3 @@
-import { readFileSync } from "fs";
-import { fileURLToPath } from "url";
-import { dirname, join } from "path";
 import { Command } from "commander";
 import { enableCommand } from "./commands/enable.js";
 import { updateCommand } from "./commands/update.js";
@@ -9,11 +6,7 @@ import { cleanupCommand } from "./commands/cleanup.js";
 import { disableCommand } from "./commands/disable.js";
 import { listCommand } from "./commands/list.js";
 import { completionCommand } from "./commands/completion.js";
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const pkg = JSON.parse(
-  readFileSync(join(__dirname, "..", "package.json"), "utf-8"),
-);
+import pkg from "../package.json" with { type: "json" };
 
 const program = new Command();
 
