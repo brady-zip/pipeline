@@ -56,7 +56,7 @@ export const updateCommand = new Command("update")
 
     if (instrumentedCommit !== headHash) {
       console.log("Hoisting instrumented commit to HEAD...");
-      await hoistInstrumentedCommit(instrumentedCommit);
+      await hoistInstrumentedCommit(instrumentedCommit, currentBranch);
       instrumentedCommit = (await $`git rev-parse HEAD`.text()).trim();
     }
 

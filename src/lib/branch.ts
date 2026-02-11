@@ -40,6 +40,7 @@ export async function findInstrumentedCommit(): Promise<string | null> {
 
 export async function hoistInstrumentedCommit(
   commitHash: string,
+  branch: string,
 ): Promise<void> {
   // Check for merge commits between HEAD and the instrumented commit
   const mergeCheck = (
@@ -57,7 +58,8 @@ export async function hoistInstrumentedCommit(
   }
 
   // Reorder commits: move instrumented commit to top
-  await $`git rebase --onto ${commitHash}^ ${commitHash} HEAD && git cherry-pick ${commitHash}`;
+  // Use branch name instead of HEAD to avoid detached HEAD state
+  await $`git rebase --onto ${commitHash}^ ${commitHash} ${branch} && git cherry-pick ${commitHash}`;
 }
 
 export async function getInstrumentedJobs(
