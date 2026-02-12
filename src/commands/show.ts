@@ -92,6 +92,7 @@ Created by \`pipeline enable\` from [${branchState.parentBranch}](../tree/${bran
       console.log(
         "  REPO_ID=$(git remote get-url origin | sed 's/.*github.com[:\\/]\\(.*\\).git/\\1/')",
       );
+      console.log("  gh pr close HEAD --repo $REPO_ID 2>/dev/null || true");
       console.log(
         '  gh pr create --draft --title "$(git log -1 --format=%s)" --body "$(git log -1 --format=%b)" --repo $REPO_ID',
       );
