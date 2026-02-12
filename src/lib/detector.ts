@@ -1,7 +1,7 @@
 import type { Workflow } from "../types.js";
 import { parseJobKey } from "../types.js";
 
-const PR_CONTEXT_PATTERNS = [
+export const PR_CONTEXT_PATTERNS = [
   "github.event.pull_request",
   "github.head_ref",
   "github.base_ref",

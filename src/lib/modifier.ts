@@ -2,9 +2,11 @@ import { readFile, writeFile } from "fs/promises";
 import { parseDocument, YAMLMap, Scalar, Pair } from "yaml";
 import type { Workflow } from "../types.js";
 import { parseJobKey } from "../types.js";
+import { PR_CONTEXT_PATTERNS } from "./detector.js";
 
 interface ModifyOptions {
   keepLabels?: boolean;
+  keepPRContext?: boolean;
 }
 
 export async function modifyWorkflows(
@@ -42,8 +44,8 @@ export async function modifyWorkflows(
         const jobNode = item.value as YAMLMap;
 
         if (enabledInWorkflow.has(jobId)) {
-          // Enable: remove if condition (unless label-based and keepLabels)
-          removeIfCondition(jobNode, options.keepLabels);
+          // Enable: remove if condition (preserving labels/PR context as configured)
+          removeIfCondition(jobNode, options);
         } else {
           // Disable: add if: false
           addIfFalse(jobNode);
@@ -60,7 +62,7 @@ function modifyTriggers(doc: ReturnType<typeof parseDocument>): void {
   doc.set("on", ["push", "workflow_dispatch"]);
 }
 
-function removeIfCondition(jobNode: YAMLMap, keepLabels?: boolean): void {
+function removeIfCondition(jobNode: YAMLMap, options: ModifyOptions): void {
   const ifIdx = jobNode.items.findIndex(
     (item) => (item.key as Scalar).value === "if",
   );
@@ -74,7 +76,13 @@ function removeIfCondition(jobNode: YAMLMap, keepLabels?: boolean): void {
     ifValue.includes("label") ||
     ifValue.includes("github.event.pull_request.labels");
 
-  if (keepLabels && isLabelCondition) {
+  if (options.keepLabels && isLabelCondition) {
+    return;
+  }
+
+  // Preserve PR-context conditions by default
+  const keepPRContext = options.keepPRContext !== false;
+  if (keepPRContext && PR_CONTEXT_PATTERNS.some((p) => ifValue.includes(p))) {
     return;
   }
 
