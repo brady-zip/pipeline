@@ -104,6 +104,12 @@ Created by \`pipeline enable\` from [${branchState.parentBranch}](../tree/${bran
     }
 
     console.log("");
+    console.log("To sync changes from parent branch:");
+    console.log("  pipeline disable");
+    console.log(`  git rebase ${branchState.parentBranch}`);
+    console.log("  pipeline update");
+
+    console.log("");
     console.log("To cleanup:");
     console.log("  pipeline cleanup");
   });
