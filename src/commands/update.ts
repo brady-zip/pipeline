@@ -2,7 +2,7 @@ import { $ } from "bun";
 import { Command } from "commander";
 import { parseWorkflows } from "../lib/parser.js";
 import { buildDependencyGraph } from "../lib/graph.js";
-import { modifyWorkflows } from "../lib/modifier.js";
+import { modifyWorkflows, printModifyResult } from "../lib/modifier.js";
 import { detectPRContext } from "../lib/detector.js";
 import { parseJobKey } from "../types.js";
 import {
@@ -87,7 +87,7 @@ export const updateCommand = new Command("update")
       [...allJobs].filter((j) => !enabledJobs.has(j)),
     );
 
-    await modifyWorkflows(workflows, enabledJobs, {
+    const modifyResult = await modifyWorkflows(workflows, enabledJobs, {
       keepLabels: options.keepLabels,
     });
 
@@ -98,6 +98,7 @@ export const updateCommand = new Command("update")
     console.log(`✓ Enabled ${enabledJobs.size} jobs: ${enabledList}`);
     console.log(`✓ Disabled ${disabledJobs.size} jobs`);
     console.log("");
+    printModifyResult(modifyResult);
 
     // Get unique workflows with enabled jobs
     const workflowsToRun = new Set<string>();

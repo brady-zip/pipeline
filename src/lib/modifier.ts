@@ -13,11 +13,30 @@ interface ModifyOptions {
   keepPRContext?: boolean;
 }
 
+export interface ConditionChange {
+  jobKey: string;
+  condition: string;
+  action: "removed" | "kept";
+  reason?: string;
+}
+
+export interface TriggerChange {
+  workflow: string;
+  triggers: string[];
+}
+
+export interface ModifyResult {
+  conditionChanges: ConditionChange[];
+  triggerChanges: TriggerChange[];
+}
+
 export async function modifyWorkflows(
   workflows: Map<string, Workflow>,
   enabledJobs: Set<string>,
   options: ModifyOptions = {},
-): Promise<void> {
+): Promise<ModifyResult> {
+  const result: ModifyResult = { conditionChanges: [], triggerChanges: [] };
+
   // Group enabled jobs by workflow
   const enabledByWorkflow = new Map<string, Set<string>>();
   for (const jobKey of enabledJobs) {
@@ -46,7 +65,8 @@ export async function modifyWorkflows(
 
     // Modify triggers if workflow has enabled jobs
     if (hasEnabledJobs) {
-      modifyTriggers(doc, needsPRContext);
+      const triggers = modifyTriggers(doc, needsPRContext);
+      result.triggerChanges.push({ workflow: workflow.name, triggers });
     }
 
     // Modify jobs
@@ -58,7 +78,12 @@ export async function modifyWorkflows(
 
         if (enabledInWorkflow.has(jobId)) {
           // Enable: remove if condition (preserving labels/PR context as configured)
-          removeIfCondition(jobNode, options);
+          const change = removeIfCondition(
+            jobNode,
+            `${workflow.name}:${jobId}`,
+            options,
+          );
+          if (change) result.conditionChanges.push(change);
         } else {
           // Disable: add if: false
           addIfFalse(jobNode);
@@ -69,25 +94,31 @@ export async function modifyWorkflows(
     cleanWorkflowDocument(doc);
     await writeFile(workflow.path, doc.toString({ lineWidth: 100 }));
   }
+
+  return result;
 }
 
 function modifyTriggers(
   doc: ReturnType<typeof parseDocument>,
   needsPRContext: boolean,
-): void {
-  if (needsPRContext) {
-    doc.set("on", ["pull_request", "workflow_dispatch"]);
-  } else {
-    doc.set("on", ["push", "workflow_dispatch"]);
-  }
+): string[] {
+  const triggers = needsPRContext
+    ? ["pull_request", "workflow_dispatch"]
+    : ["push", "workflow_dispatch"];
+  doc.set("on", triggers);
+  return triggers;
 }
 
-function removeIfCondition(jobNode: YAMLMap, options: ModifyOptions): void {
+function removeIfCondition(
+  jobNode: YAMLMap,
+  jobKey: string,
+  options: ModifyOptions,
+): ConditionChange | null {
   const ifIdx = jobNode.items.findIndex(
     (item) => (item.key as Scalar).value === "if",
   );
 
-  if (ifIdx === -1) return;
+  if (ifIdx === -1) return null;
 
   const ifValue = String((jobNode.items[ifIdx].value as Scalar).value);
 
@@ -97,16 +128,22 @@ function removeIfCondition(jobNode: YAMLMap, options: ModifyOptions): void {
     ifValue.includes("github.event.pull_request.labels");
 
   if (options.keepLabels && isLabelCondition) {
-    return;
+    return { jobKey, condition: ifValue, action: "kept", reason: "label" };
   }
 
   // Preserve PR-context conditions by default
   const keepPRContext = options.keepPRContext !== false;
   if (keepPRContext && PR_CONTEXT_PATTERNS.some((p) => ifValue.includes(p))) {
-    return;
+    return {
+      jobKey,
+      condition: ifValue,
+      action: "kept",
+      reason: "PR context",
+    };
   }
 
   jobNode.items.splice(ifIdx, 1);
+  return { jobKey, condition: ifValue, action: "removed" };
 }
 
 function addIfFalse(jobNode: YAMLMap): void {
@@ -121,6 +158,26 @@ function addIfFalse(jobNode: YAMLMap): void {
     // Add if: false at the beginning
     const ifPair = new Pair(new Scalar("if"), new Scalar(false));
     jobNode.items.unshift(ifPair);
+  }
+}
+
+export function printModifyResult(result: ModifyResult): void {
+  if (result.conditionChanges.length > 0) {
+    console.log("Conditions:");
+    for (const change of result.conditionChanges) {
+      const icon = change.action === "kept" ? "kept" : "removed";
+      const reason = change.reason ? ` (${change.reason})` : "";
+      console.log(`  ${icon}: ${change.jobKey} — ${change.condition}${reason}`);
+    }
+    console.log("");
+  }
+
+  if (result.triggerChanges.length > 0) {
+    console.log("Triggers:");
+    for (const change of result.triggerChanges) {
+      console.log(`  ${change.workflow}.yml → ${change.triggers.join(", ")}`);
+    }
+    console.log("");
   }
 }
 
