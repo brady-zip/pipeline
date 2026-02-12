@@ -9,18 +9,46 @@ import {
 
 export const cleanupCommand = new Command("cleanup")
   .description("Cleanup test branch and squash changes back to parent")
-  .action(async () => {
+  .option("--branch <branch>", "Specify the test branch to clean up")
+  .action(async (options: { branch?: string }) => {
     const currentBranch = (
       await $`git rev-parse --abbrev-ref HEAD`.text()
     ).trim();
 
-    // Must be on a test branch
-    if (!currentBranch.endsWith(TEST_BRANCH_SUFFIX)) {
-      console.error("Error: Not on a test branch.");
-      process.exit(1);
+    let testBranch: string;
+
+    if (options.branch) {
+      testBranch = options.branch;
+    } else if (currentBranch.endsWith(TEST_BRANCH_SUFFIX)) {
+      testBranch = currentBranch;
+    } else {
+      // Try to find the test branch for the current branch
+      const candidateBranch = `${currentBranch}${TEST_BRANCH_SUFFIX}`;
+      const branchExists = (
+        await $`git branch --list ${candidateBranch}`.text()
+      ).trim();
+
+      if (!branchExists) {
+        console.error("Error: Not on a test branch.");
+        console.error(
+          `       No local branch "${candidateBranch}" found either.`,
+        );
+        console.error(
+          "       Use --branch to specify the test branch explicitly.",
+        );
+        process.exit(1);
+      }
+
+      testBranch = candidateBranch;
     }
 
-    const branchState = detectBranchState(currentBranch);
+    // Switch to the test branch if not already on it
+    if (currentBranch !== testBranch) {
+      console.log(`Switching to ${testBranch}...`);
+      await $`git checkout ${testBranch}`;
+    }
+
+    const branchState = detectBranchState(testBranch);
 
     // Find instrumented commit
     const instrumentedCommit = await findInstrumentedCommit();
