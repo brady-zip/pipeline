@@ -2,7 +2,11 @@ import { readFile, writeFile } from "fs/promises";
 import { parseDocument, YAMLMap, Scalar, Pair } from "yaml";
 import type { Workflow } from "../types.js";
 import { parseJobKey } from "../types.js";
-import { PR_CONTEXT_PATTERNS } from "./detector.js";
+import {
+  PR_CONTEXT_PATTERNS,
+  containsPRContext,
+  containsPRTrigger,
+} from "./detector.js";
 
 interface ModifyOptions {
   keepLabels?: boolean;
@@ -31,9 +35,18 @@ export async function modifyWorkflows(
 
     const hasEnabledJobs = enabledInWorkflow.size > 0;
 
+    // Check if any enabled job in this workflow needs PR context
+    const needsPRContext =
+      hasEnabledJobs &&
+      (containsPRTrigger(workflow.on) ||
+        [...enabledInWorkflow].some((jobId) => {
+          const job = workflow.jobs.get(jobId);
+          return job?.if && containsPRContext(job.if);
+        }));
+
     // Modify triggers if workflow has enabled jobs
     if (hasEnabledJobs) {
-      modifyTriggers(doc);
+      modifyTriggers(doc, needsPRContext);
     }
 
     // Modify jobs
@@ -58,8 +71,15 @@ export async function modifyWorkflows(
   }
 }
 
-function modifyTriggers(doc: ReturnType<typeof parseDocument>): void {
-  doc.set("on", ["push", "workflow_dispatch"]);
+function modifyTriggers(
+  doc: ReturnType<typeof parseDocument>,
+  needsPRContext: boolean,
+): void {
+  if (needsPRContext) {
+    doc.set("on", ["pull_request", "workflow_dispatch"]);
+  } else {
+    doc.set("on", ["push", "workflow_dispatch"]);
+  }
 }
 
 function removeIfCondition(jobNode: YAMLMap, options: ModifyOptions): void {

@@ -34,11 +34,11 @@ export function detectPRContext(
   return false;
 }
 
-function containsPRContext(text: string): boolean {
+export function containsPRContext(text: string): boolean {
   return PR_CONTEXT_PATTERNS.some((pattern) => text.includes(pattern));
 }
 
-function containsPRTrigger(on: unknown): boolean {
+export function containsPRTrigger(on: unknown): boolean {
   if (typeof on === "string") {
     return on === "pull_request" || on === "pull_request_target";
   }
