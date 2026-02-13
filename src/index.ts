@@ -6,6 +6,7 @@ import { cleanupCommand } from "./commands/cleanup.js";
 import { disableCommand } from "./commands/disable.js";
 import { listCommand } from "./commands/list.js";
 import { completionCommand } from "./commands/completion.js";
+import { skillCommand } from "./commands/skill.js";
 import pkg from "../package.json" with { type: "json" };
 
 const program = new Command();
@@ -24,5 +25,6 @@ program.addCommand(cleanupCommand);
 program.addCommand(disableCommand);
 program.addCommand(listCommand);
 program.addCommand(completionCommand);
+program.addCommand(skillCommand);
 
 program.parse();
