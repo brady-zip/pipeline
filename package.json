@@ -1,6 +1,6 @@
 {
   "name": "pipeline",
-  "version": "1.5.1",
+  "version": "1.6.0",
   "description": "CLI tool to selectively enable GitHub Actions jobs for isolated testing",
   "type": "module",
   "bin": {
