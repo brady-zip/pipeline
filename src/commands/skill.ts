@@ -161,12 +161,24 @@ name: Testing GitHub Workflows with Pipeline
 description: Debug loop for testing GitHub Actions workflows using pipeline enable, push, watch, fix, update, and repeat until successful
 ---`;
 
+const CLAUDE_FRONTMATTER = `---
+name: Testing GitHub Workflows with Pipeline
+description: Debug loop for testing GitHub Actions workflows using pipeline enable, push, watch, fix, update, and repeat until successful
+allowed-tools: Bash(git *), Bash(gh *), Bash(pipeline *), Read, Grep, Glob
+disable-model-invocation: false
+---`;
+
 export const skillCommand = new Command("skill")
   .description("Show guide for testing GitHub workflows with pipeline")
-  .option("--header", "Include frontmatter with name and description fields")
-  .action((options: { header?: boolean }) => {
+  .option(
+    "--header [format]",
+    "Include frontmatter (use --header=claude for Claude Code skill fields)",
+  )
+  .action((options: { header?: boolean | string }) => {
     if (options.header) {
-      console.log(FRONTMATTER);
+      console.log(
+        options.header === "claude" ? CLAUDE_FRONTMATTER : FRONTMATTER,
+      );
       console.log("");
     }
     console.log(SKILL_GUIDE);
