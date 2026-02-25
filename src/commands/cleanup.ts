@@ -81,6 +81,21 @@ export const cleanupCommand = new Command("cleanup")
     const jobs = await getInstrumentedJobs(instrumentedCommit);
     const jobList = jobs.length > 0 ? jobs.join(", ") : "unknown";
 
+    // Resolve GitHub link: PR if one exists, otherwise branch URL
+    const prUrl = (
+      await $`gh pr list --head ${branchState.testBranch} --json url -q '.[0].url'`
+        .nothrow()
+        .text()
+    ).trim();
+    const repoUrl = (
+      await $`gh repo view --json url -q '.url'`.nothrow().text()
+    ).trim();
+    const testLink =
+      prUrl ||
+      (repoUrl
+        ? `${repoUrl}/tree/${branchState.testBranch}`
+        : branchState.testBranch);
+
     console.log(`Cleaning up test branch: ${branchState.testBranch}`);
     console.log(`Parent branch: ${branchState.parentBranch}`);
     console.log("");
@@ -99,16 +114,15 @@ export const cleanupCommand = new Command("cleanup")
       console.log("No changes to merge (only .github/ was modified).");
       console.log("");
 
-      // Just delete the branch
+      const emptyCommitMsg = `Tested via ${testLink}
+
+CI test branch (jobs: ${jobList})`;
+      await $`git commit --allow-empty -m ${emptyCommitMsg}`;
+      console.log("✓ Test link committed");
+
+      // Delete local test branch
       console.log(`Deleting local branch ${branchState.testBranch}...`);
       await $`git branch -D ${branchState.testBranch}`;
-
-      // Try to delete remote branch
-      const result =
-        await $`git push origin --delete ${branchState.testBranch}`.nothrow();
-      if (result.exitCode !== 0) {
-        console.log("Remote branch not found or already deleted.");
-      }
 
       console.log("");
       console.log("✓ Cleanup complete (no changes to merge)");
@@ -136,7 +150,7 @@ export const cleanupCommand = new Command("cleanup")
       await $`git reset --hard HEAD`;
     } else {
       // Commit the squashed changes
-      const commitMsg = `Changes from ${branchState.testBranch}
+      const commitMsg = `Changes from ${testLink}
 
 Squashed from test branch (jobs: ${jobList})`;
 
@@ -149,13 +163,6 @@ Squashed from test branch (jobs: ${jobList})`;
     // Delete local test branch
     console.log(`Deleting local branch ${branchState.testBranch}...`);
     await $`git branch -D ${branchState.testBranch}`;
-
-    // Try to delete remote branch
-    const deleteResult =
-      await $`git push origin --delete ${branchState.testBranch}`.nothrow();
-    if (deleteResult.exitCode !== 0) {
-      console.log("Remote branch not found or already deleted.");
-    }
 
     console.log("");
     console.log("✓ Cleanup complete");
