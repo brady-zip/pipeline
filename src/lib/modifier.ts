@@ -105,6 +105,27 @@ function modifyTriggers(
   const triggers = needsPRContext
     ? ["pull_request", "workflow_dispatch"]
     : ["push", "workflow_dispatch"];
+
+  const onNode = doc.get("on", true);
+  const hasWorkflowCall =
+    onNode instanceof YAMLMap &&
+    onNode.items.some(
+      (item) => String((item.key as Scalar).value) === "workflow_call",
+    );
+
+  if (hasWorkflowCall) {
+    const workflowCallPair = (onNode as YAMLMap).items.find(
+      (item) => String((item.key as Scalar).value) === "workflow_call",
+    )!;
+    const newOn = new YAMLMap();
+    for (const t of triggers) {
+      newOn.add(new Pair(new Scalar(t), null));
+    }
+    newOn.add(workflowCallPair);
+    doc.set("on", newOn);
+    return [...triggers, "workflow_call"];
+  }
+
   doc.set("on", triggers);
   return triggers;
 }
