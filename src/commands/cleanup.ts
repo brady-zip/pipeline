@@ -11,6 +11,10 @@ export const cleanupCommand = new Command("cleanup")
   .description("Cleanup test branch and squash changes back to parent")
   .option("--branch <branch>", "Specify the test branch to clean up")
   .action(async (options: { branch?: string }) => {
+    // Ensure we're at repo root — git commands below use relative paths
+    const repoRoot = (await $`git rev-parse --show-toplevel`.text()).trim();
+    process.chdir(repoRoot);
+
     const currentBranch = (
       await $`git rev-parse --abbrev-ref HEAD`.text()
     ).trim();
