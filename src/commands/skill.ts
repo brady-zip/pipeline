@@ -57,6 +57,16 @@ gh run watch
 
 ## The Debug Loop
 
+**Rule: Keep the parent branch clean.**
+
+- **Non-.github/ test artifacts** (inflated baselines, mock data, etc.) must NOT be committed
+  on the test branch. Pipeline cleanup merges all non-.github/ changes back to the parent.
+  If you need to simulate a failure, include those changes in the instrumentation commit
+  alongside .github/ files so cleanup excludes them.
+- **Real .github/ workflow fixes** must be applied on the parent branch first, then run
+  \`pipeline update\` to re-instrument on top. Do NOT fix .github/ files only on the test
+  branch — cleanup excludes all .github/ changes, so the fix will be lost.
+
 When a workflow run fails, iterate with this loop:
 
 ### 1. Read the logs
@@ -74,31 +84,31 @@ Use the Bash tool to run: gh run view <run-id> --log-failed
 Then analyze the output to determine the root cause.
 \`\`\`
 
-### 2. Fix the issue on your parent branch
+### 2. Fix the issue on the test branch
 
-Switch back to your working branch, make the fix, and commit:
+Make the fix and commit directly on the test branch:
 
 \`\`\`bash
-git checkout <parent-branch>
 # ... make fixes ...
 git add <files>
 git commit -m "fix: ..."
 \`\`\`
 
-### 3. Hoist the fix onto the test branch
+### 3. Update instrumentation
 
-\`pipeline update\` rebases the test branch onto the parent and re-applies
-instrumentation:
+\`pipeline update\` hoists the instrumentation commit back to HEAD:
 
 \`\`\`bash
-git checkout <branch>-pipeline-test
 pipeline update
 \`\`\`
 
-This is equivalent to:
-- \`pipeline disable\` (strip instrumentation)
-- \`git rebase <parent-branch>\` (pick up your fixes)
-- \`pipeline update\` (re-apply instrumentation)
+If the parent branch has new commits you need to incorporate:
+
+\`\`\`bash
+pipeline disable    # strip instrumentation
+git rebase <parent-branch>
+pipeline update     # re-apply instrumentation
+\`\`\`
 
 ### 4. Force push and re-run
 
