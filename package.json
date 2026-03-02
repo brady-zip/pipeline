@@ -3,9 +3,6 @@
   "version": "1.9.2",
   "description": "CLI tool to selectively enable GitHub Actions jobs for isolated testing",
   "type": "module",
-  "bin": {
-    "pipeline": "./bin/pipeline"
-  },
   "scripts": {
     "build": "bun build src/index.ts --compile --outfile bin/pipeline",
     "dev": "tsc --watch",

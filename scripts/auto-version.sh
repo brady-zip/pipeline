@@ -76,5 +76,6 @@ npm run build
 git add package.json
 git add -f dist/
 git commit -m "chore: bump to v$NEW_VERSION [skip-version]"
+git tag "v$NEW_VERSION"
 
 echo "auto-version: bumped $CURRENT_VERSION -> $NEW_VERSION ($BUMP_TYPE)"

@@ -7,6 +7,7 @@ import { disableCommand } from "./commands/disable.js";
 import { listCommand } from "./commands/list.js";
 import { completionCommand } from "./commands/completion.js";
 import { skillCommand } from "./commands/skill.js";
+import { checkForUpdates } from "./lib/updater.js";
 import pkg from "../package.json" with { type: "json" };
 
 const program = new Command();
@@ -27,4 +28,5 @@ program.addCommand(listCommand);
 program.addCommand(completionCommand);
 program.addCommand(skillCommand);
 
+await checkForUpdates();
 program.parse();

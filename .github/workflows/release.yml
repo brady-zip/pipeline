@@ -1,0 +1,26 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+
+      - run: npm install
+
+      - run: bun build src/index.ts --compile --outfile pipeline-darwin-arm64
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: pipeline-darwin-arm64
+          generate_release_notes: true
