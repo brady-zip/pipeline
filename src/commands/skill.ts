@@ -133,15 +133,16 @@ If it fails again, go back to step 1.
 
 ## Cleanup
 
-Once your workflow passes, clean up the test branch and squash the
-instrumentation commit:
+Once your workflow passes, grab the test PR link for reference, then clean up:
 
 \`\`\`bash
+gh pr view --json url -q '.url'
 pipeline cleanup
 \`\`\`
 
 This switches back to the parent branch, deletes the test branch locally and
-on the remote, and closes any associated PR.
+on the remote, and closes any associated PR. Include the test PR link in your
+actual PR description as proof that CI passed.
 
 ## Quick Reference
 
@@ -152,6 +153,7 @@ on the remote, and closes any associated PR.
 | Show current state | \`pipeline show\` |
 | Update after rebase | \`pipeline update\` |
 | Strip instrumentation | \`pipeline disable\` |
+| Get test PR link | \`gh pr view --json url -q '.url'\` |
 | Cleanup test branch | \`pipeline cleanup\` |
 | Watch run | \`gh run watch\` |
 | View failed logs | \`gh run view <id> --log-failed\` |
