@@ -57,6 +57,13 @@ gh run watch
 
 ## The Debug Loop
 
+**Rule: Never give up after a single failure.** When a run fails, investigate the logs,
+diagnose the root cause, fix it, and re-run. Do NOT present the user with a menu of options
+or ask what they want to do — just drive the loop. The whole point of pipeline is to iterate
+until the job passes. Only stop and ask if you've exhausted your ideas after multiple attempts
+or if the fix requires a decision that's genuinely outside your judgment (e.g. a product
+decision, not a technical one).
+
 **Rule: Keep the parent branch clean.**
 
 - **Non-.github/ test artifacts** (inflated baselines, mock data, etc.) must NOT be committed
@@ -69,7 +76,7 @@ gh run watch
 
 When a workflow run fails, iterate with this loop:
 
-### 1. Read the logs
+### 1. Read the logs and diagnose
 
 Use \`gh run view --log-failed\` to see only the failed step output:
 
@@ -77,12 +84,13 @@ Use \`gh run view --log-failed\` to see only the failed step output:
 gh run view <run-id> --log-failed
 \`\`\`
 
-Or let Claude read the logs using a subagent to analyze failures:
+Diagnose the root cause. Failures often fall into these categories:
+- **Pre-existing issues** (missing files, broken config): fix them on the parent branch
+- **Your changes broke something**: fix on the parent branch, then \`pipeline update\`
+- **Flaky/infra failures** (timeouts, rate limits): just re-push to retry
 
-\`\`\`
-Use the Bash tool to run: gh run view <run-id> --log-failed
-Then analyze the output to determine the root cause.
-\`\`\`
+If the logs are too large, use a subagent to analyze them. The key is to identify the
+root cause and act on it — don't just report the error back to the user.
 
 ### 2. Fix the issue on the test branch
 
