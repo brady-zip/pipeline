@@ -116,7 +116,7 @@ Created by \`pipeline enable\` from [${currentBranch}](../tree/${currentBranch})
     console.log("To test:");
     console.log(`  git checkout -b ${testBranch}`);
     console.log("  git add .github/");
-    console.log(`  git commit -m $'${escapedCommitMsg}'`);
+    console.log(`  git commit -m $'${escapedCommitMsg}' -n`);
     console.log("  git push -u origin HEAD");
 
     if (needsPRContext) {

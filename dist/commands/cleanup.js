@@ -79,7 +79,7 @@ export const cleanupCommand = new Command("cleanup")
         const commitMsg = `Changes from ${branchState.testBranch}
 
 Squashed from test branch (jobs: ${jobList})`;
-        await $ `git commit -m ${commitMsg}`;
+        await $ `git commit -m ${commitMsg} -n`;
         console.log("✓ Changes committed");
     }
     console.log("");

@@ -121,7 +121,7 @@ export const cleanupCommand = new Command("cleanup")
       const emptyCommitMsg = `Tested via ${testLink}
 
 CI test branch (jobs: ${jobList})`;
-      await $`git commit --allow-empty -m ${emptyCommitMsg}`;
+      await $`git commit --allow-empty -m ${emptyCommitMsg} -n`;
       console.log("✓ Test link committed");
 
       // Delete local test branch
@@ -158,7 +158,7 @@ CI test branch (jobs: ${jobList})`;
 
 Squashed from test branch (jobs: ${jobList})`;
 
-      await $`git commit -m ${commitMsg}`;
+      await $`git commit -m ${commitMsg} -n`;
       console.log("✓ Changes committed");
     }
 

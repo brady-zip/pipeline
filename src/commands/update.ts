@@ -119,7 +119,7 @@ Created by \`pipeline enable\` from [${branchState.parentBranch}](../tree/${bran
 
     console.log("To test:");
     console.log("  git add .github/");
-    console.log(`  git commit --amend -m $'${escapedCommitMsg}'`);
+    console.log(`  git commit --amend -m $'${escapedCommitMsg}' -n`);
     console.log("  git push --force-with-lease");
 
     if (needsPRContext) {

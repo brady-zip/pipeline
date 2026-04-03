@@ -63,7 +63,7 @@ Created by \`pipeline enable\` from [${branchState.parentBranch}](../tree/${bran
         .replace(/\n/g, "\\n");
     console.log("To test:");
     console.log("  git add .github/");
-    console.log(`  git commit --amend -m $'${escapedCommitMsg}'`);
+    console.log(`  git commit --amend -m $'${escapedCommitMsg}' -n`);
     console.log("  git push --force-with-lease");
     if (needsPRContext) {
         console.log("  REPO_ID=$(git remote get-url origin | sed 's/.*github.com[:\\/]\\(.*\\).git/\\1/')");
