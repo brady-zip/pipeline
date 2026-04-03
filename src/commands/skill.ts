@@ -24,7 +24,7 @@ Use \`pipeline list\` to see available jobs.
 ### 2. Create the test branch and push
 
 \`\`\`bash
-git checkout -b <branch>-pipeline-test
+git checkout -b <branch>-test-ci
 git add .github/
 git commit -m $'### DO NOT MERGE\\n\\nTest CI for jobs: ...'
 git push -u origin HEAD
@@ -128,7 +128,7 @@ For PR-triggered workflows, the push automatically triggers a new run. For
 push-triggered workflows, dispatch again:
 
 \`\`\`bash
-gh workflow run <workflow>.yml --ref <branch>-pipeline-test
+gh workflow run <workflow>.yml --ref <branch>-test-ci
 \`\`\`
 
 ### 5. Watch and repeat
@@ -172,7 +172,7 @@ actual PR description as proof that CI passed.
   instrumentation and suggested commands
 - \`--keep-labels\` flag on \`enable\`/\`update\` preserves label-based conditions
   if you need them
-- The test branch is always named \`<parent>-pipeline-test\`
+- The test branch is always named \`<parent>-test-ci\`
 - Commit messages start with \`### DO NOT MERGE\` to prevent accidental merges
 `.trim();
 
