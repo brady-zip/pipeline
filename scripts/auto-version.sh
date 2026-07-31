@@ -79,3 +79,15 @@ git commit -m "chore: bump to v$NEW_VERSION [skip-version]"
 git tag -a "v$NEW_VERSION" -m "v$NEW_VERSION"
 
 echo "auto-version: bumped $CURRENT_VERSION -> $NEW_VERSION ($BUMP_TYPE)"
+
+# Push the bump commit and the new tag to the remote.
+# --follow-tags pushes the annotated v$NEW_VERSION tag along with the branch,
+# which triggers .github/workflows/release.yml to build and publish the release.
+# Best-effort: the commit and tag already exist locally, so a failed push
+# (offline, diverged branch, no upstream) should warn, not abort the hook.
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
+if git push origin "$BRANCH" --follow-tags; then
+  echo "auto-version: pushed $BRANCH and v$NEW_VERSION to origin"
+else
+  echo "auto-version: push failed — run 'git push origin $BRANCH --follow-tags' to publish v$NEW_VERSION" >&2
+fi

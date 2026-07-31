@@ -74,6 +74,8 @@ pipeline cleanup
 
 Cleans up the test branch and squashes your changes back to the parent branch. Use `--branch <branch>` to specify a different test branch.
 
+Use `--drop` to discard the test branch instead of squashing its changes back to the parent — the parent branch is left untouched and the test branch is deleted.
+
 ### Shell completions
 
 ```bash

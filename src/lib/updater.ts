@@ -1,7 +1,7 @@
 import { $ } from "bun";
 import { renameSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, basename } from "node:path";
 import { readConfig, getLastCheckTime, setLastCheckTime } from "./config.js";
 import pkg from "../../package.json" with { type: "json" };
 
@@ -11,6 +11,12 @@ const ONE_HOUR_MS = 60 * 60 * 1000;
 
 export async function checkForUpdates(): Promise<void> {
   try {
+    // Only self-update the installed standalone binary. When running from source
+    // (e.g. `bun run src/index.ts`), process.execPath is the interpreter, and
+    // replacing it would clobber the user's bun/node install.
+    const exe = basename(process.execPath);
+    if (exe === "bun" || exe === "node") return;
+
     const config = readConfig();
     if (!config.autoUpdate) return;
 

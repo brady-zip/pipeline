@@ -10,7 +10,11 @@ import {
 export const cleanupCommand = new Command("cleanup")
   .description("Cleanup test branch and squash changes back to parent")
   .option("--branch <branch>", "Specify the test branch to clean up")
-  .action(async (options: { branch?: string }) => {
+  .option(
+    "--drop",
+    "Discard the test branch instead of squashing its changes back to the parent",
+  )
+  .action(async (options: { branch?: string; drop?: boolean }) => {
     // Ensure we're at repo root — git commands below use relative paths
     const repoRoot = (await $`git rev-parse --show-toplevel`.text()).trim();
     process.chdir(repoRoot);
@@ -79,6 +83,23 @@ export const cleanupCommand = new Command("cleanup")
       console.error("Error: Uncommitted changes detected.");
       console.error("       Commit or stash changes before cleanup.");
       process.exit(1);
+    }
+
+    // --drop: discard the test branch without squashing changes back to parent
+    if (options.drop) {
+      console.log(`Cleaning up test branch: ${branchState.testBranch}`);
+      console.log(`Parent branch: ${branchState.parentBranch}`);
+      console.log("");
+
+      console.log(`Checking out ${branchState.parentBranch}...`);
+      await $`git checkout ${branchState.parentBranch}`;
+
+      console.log(`Deleting local branch ${branchState.testBranch}...`);
+      await $`git branch -D ${branchState.testBranch}`;
+
+      console.log("");
+      console.log("✓ Cleanup complete (changes dropped)");
+      return;
     }
 
     // Get the jobs for the commit message
