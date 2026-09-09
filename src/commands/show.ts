@@ -1,8 +1,9 @@
 import { $ } from "bun";
 import { Command } from "commander";
 import { parseWorkflows } from "../lib/parser.js";
-import { buildDependencyGraph } from "../lib/graph.js";
+import { buildDependencyGraph, getCalledWorkflows } from "../lib/graph.js";
 import { detectPRContext } from "../lib/detector.js";
+import { dispatchLines, prCreateLines } from "../lib/instructions.js";
 import { parseJobKey } from "../types.js";
 import {
   TEST_BRANCH_SUFFIX,
@@ -13,7 +14,11 @@ import {
 
 export const showCommand = new Command("show")
   .description("Show test and cleanup steps for current instrumentation")
-  .action(async () => {
+  .option(
+    "--pr-label <labels...>",
+    "Labels to put on the test PR (e.g. a repo's CI-opt-in label)",
+  )
+  .action(async (options: { prLabel?: string[] }) => {
     const currentBranch = (
       await $`git rev-parse --abbrev-ref HEAD`.text()
     ).trim();
@@ -61,7 +66,12 @@ export const showCommand = new Command("show")
       throw err;
     }
 
-    const needsPRContext = detectPRContext(workflows, enabledJobs);
+    const calledWorkflows = getCalledWorkflows(graph, enabledJobs);
+    const needsPRContext = detectPRContext(
+      workflows,
+      enabledJobs,
+      calledWorkflows,
+    );
 
     // Get unique workflows with enabled jobs
     const workflowsToRun = new Set<string>();
@@ -89,18 +99,17 @@ Created by \`pipeline enable\` from [${branchState.parentBranch}](../tree/${bran
     console.log("  git push --force-with-lease");
 
     if (needsPRContext) {
-      console.log(
-        "  REPO_ID=$(git remote get-url origin | sed 's/.*github.com[:\\/]\\(.*\\).git/\\1/')",
-      );
+      const [repoId, ...rest] = prCreateLines(options.prLabel);
+      console.log(repoId);
       console.log("  gh pr close HEAD --repo $REPO_ID 2>/dev/null || true");
-      console.log(
-        '  gh pr create --draft --title "$(git log -1 --format=%s)" --body "$(git log -1 --format=%b)" --repo $REPO_ID',
-      );
+      for (const line of rest) console.log(line);
     } else {
-      const workflowFile = Array.from(workflowsToRun)[0] + ".yml";
-      console.log(
-        `  gh workflow run ${workflowFile} --ref ${branchState.testBranch} && sleep 2 && gh run watch $(gh run list --workflow=${workflowFile} --limit 1 --json databaseId -q '.[0].databaseId') && osascript -e 'display notification "Workflow complete" with title "pipeline"'`,
-      );
+      for (const line of dispatchLines(
+        workflowsToRun,
+        calledWorkflows,
+        branchState.testBranch,
+      ))
+        console.log(line);
     }
 
     console.log("");

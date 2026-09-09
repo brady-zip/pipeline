@@ -32,14 +32,16 @@ export async function parseWorkflows(
 
     if (raw.jobs) {
       for (const [jobId, rawJob] of Object.entries(raw.jobs)) {
-        const needs = normalizeNeeds(rawJob.needs);
-        const resolvedNeeds = resolveNeeds(name, needs, rawJob.uses);
+        const needs = normalizeNeeds(rawJob.needs).map((need) =>
+          makeJobKey(name, need),
+        );
 
         jobs.set(jobId, {
           id: jobId,
           workflow: name,
-          needs: resolvedNeeds,
+          needs,
           uses: rawJob.uses,
+          usesWorkflow: resolveUsedWorkflow(rawJob.uses),
           if: rawJob.if,
           runsOn: rawJob["runs-on"],
         });
@@ -62,28 +64,14 @@ function normalizeNeeds(needs: string | string[] | undefined): string[] {
   return Array.isArray(needs) ? needs : [needs];
 }
 
-function resolveNeeds(
-  currentWorkflow: string,
-  needs: string[],
-  uses?: string,
-): string[] {
-  const resolved: string[] = [];
-
-  // Local job dependencies (within same workflow)
-  for (const need of needs) {
-    resolved.push(makeJobKey(currentWorkflow, need));
-  }
-
-  // Reusable workflow dependency
-  if (uses?.startsWith("./.github/workflows/")) {
-    const match = uses.match(/\.\/\.github\/workflows\/([^.]+)\.yml/);
-    if (match) {
-      const reusedWorkflow = match[1];
-      // The caller job depends on all jobs in the reused workflow
-      // We mark it as depending on the workflow itself, resolved later in graph
-      resolved.push(`${reusedWorkflow}:*`);
-    }
-  }
-
-  return resolved;
+/**
+ * Name of the local reusable workflow a job invokes, or undefined if the job
+ * does not call one. `graph.ts` uses this to cross the `uses:` boundary in both
+ * directions: a caller needs the workflow's jobs, and those jobs only run when
+ * the caller does.
+ */
+function resolveUsedWorkflow(uses?: string): string | undefined {
+  if (!uses?.startsWith("./.github/workflows/")) return undefined;
+  const match = uses.match(/\.\/\.github\/workflows\/([^.]+)\.yml/);
+  return match ? match[1] : undefined;
 }

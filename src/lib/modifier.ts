@@ -11,6 +11,8 @@ import {
 interface ModifyOptions {
   keepLabels?: boolean;
   keepPRContext?: boolean;
+  /** Workflows reached only via `uses:` — see getCalledWorkflows. */
+  calledWorkflows?: Set<string>;
 }
 
 export interface ConditionChange {
@@ -53,6 +55,7 @@ export async function modifyWorkflows(
     const enabledInWorkflow = enabledByWorkflow.get(workflow.name) ?? new Set();
 
     const hasEnabledJobs = enabledInWorkflow.size > 0;
+    const isCalled = options.calledWorkflows?.has(workflow.name) ?? false;
 
     // Check if any enabled job in this workflow needs PR context
     const needsPRContext =
@@ -65,7 +68,7 @@ export async function modifyWorkflows(
 
     // Modify triggers if workflow has enabled jobs
     if (hasEnabledJobs) {
-      const triggers = modifyTriggers(doc, needsPRContext);
+      const triggers = modifyTriggers(doc, needsPRContext, isCalled);
       result.triggerChanges.push({ workflow: workflow.name, triggers });
     }
 
@@ -101,29 +104,33 @@ export async function modifyWorkflows(
 function modifyTriggers(
   doc: ReturnType<typeof parseDocument>,
   needsPRContext: boolean,
+  isCalled: boolean,
 ): string[] {
   const triggers = needsPRContext
     ? ["pull_request", "workflow_dispatch"]
     : ["push", "workflow_dispatch"];
 
   const onNode = doc.get("on", true);
-  const hasWorkflowCall =
-    onNode instanceof YAMLMap &&
-    onNode.items.some(
-      (item) => String((item.key as Scalar).value) === "workflow_call",
-    );
+  const workflowCallPair =
+    onNode instanceof YAMLMap
+      ? onNode.items.find(
+          (item) => String((item.key as Scalar).value) === "workflow_call",
+        )
+      : undefined;
 
-  if (hasWorkflowCall) {
-    const workflowCallPair = (onNode as YAMLMap).items.find(
-      (item) => String((item.key as Scalar).value) === "workflow_call",
-    )!;
+  if (workflowCallPair) {
     const newOn = new YAMLMap();
-    for (const t of triggers) {
-      newOn.add(new Pair(new Scalar(t), null));
+    // A called workflow keeps only `workflow_call`. Its own triggers would fire
+    // a second, standalone run with every `inputs.*` empty, where the jobs under
+    // test skip instead of failing — an all-green-but-nothing-ran result.
+    if (!isCalled) {
+      for (const t of triggers) {
+        newOn.add(new Pair(new Scalar(t), null));
+      }
     }
     newOn.add(workflowCallPair);
     doc.set("on", newOn);
-    return [...triggers, "workflow_call"];
+    return isCalled ? ["workflow_call"] : [...triggers, "workflow_call"];
   }
 
   doc.set("on", triggers);

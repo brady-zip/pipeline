@@ -11,6 +11,7 @@ export const PR_CONTEXT_PATTERNS = [
 export function detectPRContext(
   workflows: Map<string, Workflow>,
   enabledJobs: Set<string>,
+  calledWorkflows: Set<string> = new Set(),
 ): boolean {
   for (const jobKey of enabledJobs) {
     const { workflow, jobId } = parseJobKey(jobKey);
@@ -25,8 +26,10 @@ export function detectPRContext(
       return true;
     }
 
-    // Check workflow triggers
-    if (wf.on && containsPRTrigger(wf.on)) {
+    // Check workflow triggers. A called workflow's own triggers are stripped
+    // down to `workflow_call`, so they say nothing about how the run starts —
+    // that is decided by the workflow holding the calling job.
+    if (wf.on && !calledWorkflows.has(workflow) && containsPRTrigger(wf.on)) {
       return true;
     }
   }

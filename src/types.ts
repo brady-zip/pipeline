@@ -3,6 +3,8 @@ export interface Job {
   workflow: string;
   needs: string[];
   uses?: string;
+  /** Name of the local reusable workflow this job invokes via `uses:`, if any. */
+  usesWorkflow?: string;
   if?: string;
   runsOn?: string;
 }
@@ -17,6 +19,8 @@ export interface Workflow {
 export interface DependencyGraph {
   jobs: Map<string, Job>;
   getDependencies(jobKey: string): Set<string>;
+  /** Job keys that invoke `workflowName` via `uses:`. */
+  getCallerJobs(workflowName: string): string[];
   getRequiredJobs(targets: string[]): Set<string>;
 }
 

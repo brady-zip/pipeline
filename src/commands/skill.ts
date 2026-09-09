@@ -39,6 +39,32 @@ detects this and tells you. If needed:
 gh pr create --draft --title "$(git log -1 --format=%s)" --body "$(git log -1 --format=%b)"
 \`\`\`
 
+**Watch out for draft-PR CI gates.** Many repos skip CI entirely on draft PRs
+(a \`pre-flight\` job checking \`github.event.pull_request.draft\`), usually with
+an opt-in label as the escape hatch. On such a repo the draft PR above produces
+a run where every job — including the one under test — reports \`skipping\`,
+with no error explaining why. \`pipeline enable\` warns when it spots a
+draft reference in an enabled job; pass the repo's label to get CI to run:
+
+\`\`\`bash
+pipeline enable <workflow>:<job> --pr-label run-ci
+\`\`\`
+
+The label has to be set **when the PR is created**, which is what
+\`--pr-label\` does. Adding it to an already-open PR does nothing by itself:
+the \`pull_request\` trigger does not fire on the \`labeled\` action, so no new
+run starts and the PR keeps its original all-skip result with nothing marked
+pending. If you have already opened the PR, label it and then re-run the
+existing run — gates that re-read labels from the API pick it up:
+
+\`\`\`bash
+gh pr edit --add-label run-ci
+gh run rerun <run-id>
+\`\`\`
+
+If a run comes back entirely skipped, read the first gating job's logs before
+assuming the instrumentation is wrong.
+
 ### 4. Watch the workflow run
 
 For push-triggered workflows, pipeline prints a one-liner to dispatch and watch:
@@ -139,6 +165,24 @@ gh run watch
 
 If it fails again, go back to step 1.
 
+## Reusable Workflows
+
+If your target job lives in a workflow invoked by another via
+\`uses: ./.github/workflows/<name>.yml\`, pipeline walks *up* through that
+boundary: it keeps the calling job and the calling job's own \`needs:\` enabled,
+because a called workflow's jobs only run when its caller runs. The called
+workflow is also reduced to a \`workflow_call\` trigger, so it does not
+additionally fire standalone with every \`inputs.*\` empty.
+
+Two things to know:
+
+- Jobs gated on \`inputs.*\` still depend on what the caller passes in
+  \`with:\`, which usually derives from the branch's diff. Pipeline warns about
+  these — the job will skip unless your branch actually touches the paths the
+  caller keys off.
+- Run \`gh workflow run\` against the *calling* workflow, not the called one.
+  Pipeline's printed command already picks the right file.
+
 ## Cleanup
 
 Once your workflow passes, grab the test PR link for reference, then clean up:
@@ -172,6 +216,10 @@ actual PR description as proof that CI passed.
   instrumentation and suggested commands
 - \`--keep-labels\` flag on \`enable\`/\`update\` preserves label-based conditions
   if you need them
+- \`--pr-label <label...>\` on \`enable\`/\`update\`/\`show\` adds labels to the
+  printed \`gh pr create\` — needed on repos that gate CI behind a label
+- Read the \`⚠\` warnings \`enable\` prints: they cover the cases where a run
+  comes back green because nothing actually ran
 - The test branch is always named \`<parent>-test-ci\`
 - Commit messages start with \`### DO NOT MERGE\` to prevent accidental merges
 `.trim();
