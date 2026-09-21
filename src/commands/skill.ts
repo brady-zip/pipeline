@@ -36,26 +36,34 @@ Some workflows require PR context (e.g. \`pull_request\` triggers). Pipeline
 detects this and tells you. If needed:
 
 \`\`\`bash
-gh pr create --draft --title "$(git log -1 --format=%s)" --body "$(git log -1 --format=%b)"
+gh pr create --draft --title "$(git log -1 --format=%s)" --body "$(git log -1 --format=%b)" --label run-ci
 \`\`\`
 
-**Watch out for draft-PR CI gates.** Many repos skip CI entirely on draft PRs
-(a \`pre-flight\` job checking \`github.event.pull_request.draft\`), usually with
-an opt-in label as the escape hatch. On such a repo the draft PR above produces
-a run where every job — including the one under test — reports \`skipping\`,
-with no error explaining why. \`pipeline enable\` warns when it spots a
-draft reference in an enabled job; pass the repo's label to get CI to run:
+**The \`run-ci\` label is applied by default.** Pipeline puts \`--label run-ci\`
+on every \`gh pr create\` line it prints, because many repos skip CI entirely
+on draft PRs (a \`pre-flight\` job checking
+\`github.event.pull_request.draft\`) and use an opt-in label as the escape
+hatch. Without it, such a repo produces a run where every job — including the
+one under test — reports \`skipping\`, with no error explaining why. Use the
+printed command as-is and keep the label.
+
+Two cases need a flag:
 
 \`\`\`bash
-pipeline enable <workflow>:<job> --pr-label run-ci
+# repo gates on a different (or an additional) label
+pipeline enable <workflow>:<job> --pr-label my-ci-label
+
+# repo has no run-ci label at all — gh pr create errors on an unknown label
+pipeline enable <workflow>:<job> --no-run-ci-label
 \`\`\`
 
-The label has to be set **when the PR is created**, which is what
-\`--pr-label\` does. Adding it to an already-open PR does nothing by itself:
-the \`pull_request\` trigger does not fire on the \`labeled\` action, so no new
-run starts and the PR keeps its original all-skip result with nothing marked
-pending. If you have already opened the PR, label it and then re-run the
-existing run — gates that re-read labels from the API pick it up:
+The label has to be set **when the PR is created**, which is why it is on the
+\`gh pr create\` line rather than added afterwards. Adding it to an already-open
+PR does nothing by itself: the \`pull_request\` trigger does not fire on the
+\`labeled\` action, so no new run starts and the PR keeps its original all-skip
+result with nothing marked pending. If you have already opened an unlabelled
+PR, label it and then re-run the existing run — gates that re-read labels from
+the API pick it up:
 
 \`\`\`bash
 gh pr edit --add-label run-ci
@@ -216,8 +224,10 @@ actual PR description as proof that CI passed.
   instrumentation and suggested commands
 - \`--keep-labels\` flag on \`enable\`/\`update\` preserves label-based conditions
   if you need them
-- \`--pr-label <label...>\` on \`enable\`/\`update\`/\`show\` adds labels to the
-  printed \`gh pr create\` — needed on repos that gate CI behind a label
+- The printed \`gh pr create\` always carries \`--label run-ci\` so CI opts in on
+  repos that gate on that label; \`--pr-label <label...>\` on
+  \`enable\`/\`update\`/\`show\` adds more, and \`--no-run-ci-label\` drops the
+  default for repos that have no \`run-ci\` label
 - Read the \`⚠\` warnings \`enable\` prints: they cover the cases where a run
   comes back green because nothing actually ran
 - The test branch is always named \`<parent>-test-ci\`

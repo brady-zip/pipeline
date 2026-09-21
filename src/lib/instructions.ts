@@ -1,12 +1,38 @@
 /**
+ * Applied to every test PR pipeline prints. Repos commonly gate CI behind an
+ * opt-in label, and a test PR that silently skips every job is the single
+ * most confusing failure mode, so the label goes on by default rather than
+ * waiting to be asked for. `--no-run-ci-label` drops it for repos that have
+ * no such label (`gh pr create` errors on a label the repo does not define).
+ */
+export const DEFAULT_PR_LABEL = "run-ci";
+
+export interface PRCreateOptions {
+  /** Extra labels from `--pr-label`, on top of the default. */
+  prLabels?: string[];
+  /** False when `--no-run-ci-label` was passed. */
+  includeDefaultLabel?: boolean;
+}
+
+/**
  * The `gh pr create` invocation printed by enable/update/show. Shared so the
  * three commands cannot drift apart.
  */
-export function prCreateLines(prLabels: string[] = []): string[] {
-  const labels = prLabels.map((label) => ` --label ${label}`).join("");
+export function effectivePRLabels(options: PRCreateOptions = {}): string[] {
+  const { prLabels = [], includeDefaultLabel = true } = options;
+  return [
+    ...(includeDefaultLabel ? [DEFAULT_PR_LABEL] : []),
+    ...prLabels,
+  ].filter((label, index, all) => all.indexOf(label) === index);
+}
+
+export function prCreateLines(options: PRCreateOptions = {}): string[] {
+  const labelArgs = effectivePRLabels(options)
+    .map((label) => ` --label ${label}`)
+    .join("");
   return [
     "  REPO_ID=$(git remote get-url origin | sed 's/.*github.com[:\\/]\\(.*\\).git/\\1/')",
-    `  gh pr create --draft --title "$(git log -1 --format=%s)" --body "$(git log -1 --format=%b)"${labels} --repo $REPO_ID`,
+    `  gh pr create --draft --title "$(git log -1 --format=%s)" --body "$(git log -1 --format=%b)"${labelArgs} --repo $REPO_ID`,
   ];
 }
 

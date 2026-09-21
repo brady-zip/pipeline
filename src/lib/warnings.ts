@@ -15,6 +15,8 @@ interface WarningInput {
   enabledJobs: Set<string>;
   calledWorkflows: Set<string>;
   modifyResult: ModifyResult;
+  /** Labels the printed `gh pr create` will set, so the advice matches it. */
+  prLabels?: string[];
 }
 
 /**
@@ -62,8 +64,18 @@ export async function collectWarnings(input: WarningInput): Promise<Warning[]> {
       detail: [
         ...draftGates,
         "A draft PR would report every job as skipped with no error pointing at",
-        "why. Pass the repo's CI-opt-in label (e.g. `--pr-label run-ci`) so it is",
-        "set when the PR is created, or drop `--draft` from the line below.",
+        ...(input.prLabels && input.prLabels.length > 0
+          ? [
+              "why. The printed `gh pr create` already opts in by setting",
+              `${input.prLabels.map((label) => `\`${label}\``).join(", ")} — if this repo gates on a different label,`,
+              "add it with `--pr-label <label>`, or drop `--draft` from the",
+              "line below.",
+            ]
+          : [
+              "why. Pass the label this repo gates CI on with `--pr-label",
+              "<label>` so it is set when the PR is created, or drop `--draft`",
+              "from the line below.",
+            ]),
         "Labelling an already-open PR does not help on its own: `pull_request`",
         "does not fire on `labeled`, so no new run starts. Re-run the existing",
         "one instead — `gh run rerun <id>`.",

@@ -3,7 +3,11 @@ import { Command } from "commander";
 import { parseWorkflows } from "../lib/parser.js";
 import { buildDependencyGraph, getCalledWorkflows } from "../lib/graph.js";
 import { detectPRContext } from "../lib/detector.js";
-import { dispatchLines, prCreateLines } from "../lib/instructions.js";
+import {
+  DEFAULT_PR_LABEL,
+  dispatchLines,
+  prCreateLines,
+} from "../lib/instructions.js";
 import { parseJobKey } from "../types.js";
 import {
   TEST_BRANCH_SUFFIX,
@@ -16,9 +20,13 @@ export const showCommand = new Command("show")
   .description("Show test and cleanup steps for current instrumentation")
   .option(
     "--pr-label <labels...>",
-    "Labels to put on the test PR (e.g. a repo's CI-opt-in label)",
+    `Extra labels to put on the test PR (on top of ${DEFAULT_PR_LABEL})`,
   )
-  .action(async (options: { prLabel?: string[] }) => {
+  .option(
+    "--no-run-ci-label",
+    `Do not add the default ${DEFAULT_PR_LABEL} label to the test PR`,
+  )
+  .action(async (options: { prLabel?: string[]; runCiLabel?: boolean }) => {
     const currentBranch = (
       await $`git rev-parse --abbrev-ref HEAD`.text()
     ).trim();
@@ -99,7 +107,10 @@ Created by \`pipeline enable\` from [${branchState.parentBranch}](../tree/${bran
     console.log("  git push --force-with-lease");
 
     if (needsPRContext) {
-      const [repoId, ...rest] = prCreateLines(options.prLabel);
+      const [repoId, ...rest] = prCreateLines({
+        prLabels: options.prLabel,
+        includeDefaultLabel: options.runCiLabel,
+      });
       console.log(repoId);
       console.log("  gh pr close HEAD --repo $REPO_ID 2>/dev/null || true");
       for (const line of rest) console.log(line);

@@ -5,7 +5,12 @@ import { buildDependencyGraph, getCalledWorkflows } from "../lib/graph.js";
 import { modifyWorkflows, printModifyResult } from "../lib/modifier.js";
 import { detectPRContext } from "../lib/detector.js";
 import { collectWarnings, printWarnings } from "../lib/warnings.js";
-import { dispatchLines, prCreateLines } from "../lib/instructions.js";
+import {
+  DEFAULT_PR_LABEL,
+  dispatchLines,
+  effectivePRLabels,
+  prCreateLines,
+} from "../lib/instructions.js";
 import { parseJobKey } from "../types.js";
 import {
   TEST_BRANCH_SUFFIX,
@@ -15,14 +20,25 @@ import {
   hoistInstrumentedCommit,
 } from "../lib/branch.js";
 
+interface UpdateOptions {
+  keepLabels?: boolean;
+  prLabel?: string[];
+  /** False when `--no-run-ci-label` was passed. */
+  runCiLabel?: boolean;
+}
+
 export const updateCommand = new Command("update")
   .description("Update instrumentation after rebase")
   .option("--keep-labels", "Preserve label-based conditions")
   .option(
     "--pr-label <labels...>",
-    "Labels to put on the test PR (e.g. a repo's CI-opt-in label)",
+    `Extra labels to put on the test PR (on top of ${DEFAULT_PR_LABEL})`,
   )
-  .action(async (options: { keepLabels?: boolean; prLabel?: string[] }) => {
+  .option(
+    "--no-run-ci-label",
+    `Do not add the default ${DEFAULT_PR_LABEL} label to the test PR`,
+  )
+  .action(async (options: UpdateOptions) => {
     const currentBranch = (
       await $`git rev-parse --abbrev-ref HEAD`.text()
     ).trim();
@@ -112,6 +128,10 @@ export const updateCommand = new Command("update")
       enabledJobs,
       calledWorkflows,
       modifyResult,
+      prLabels: effectivePRLabels({
+        prLabels: options.prLabel,
+        includeDefaultLabel: options.runCiLabel,
+      }),
     });
 
     // Output
@@ -145,7 +165,10 @@ Created by \`pipeline enable\` from [${branchState.parentBranch}](../tree/${bran
     console.log("  git push --force-with-lease");
 
     if (needsPRContext) {
-      const [repoId, ...rest] = prCreateLines(options.prLabel);
+      const [repoId, ...rest] = prCreateLines({
+        prLabels: options.prLabel,
+        includeDefaultLabel: options.runCiLabel,
+      });
       console.log(repoId);
       console.log("  gh pr close HEAD --repo $REPO_ID 2>/dev/null || true");
       for (const line of rest) console.log(line);

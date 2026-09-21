@@ -5,7 +5,12 @@ import { buildDependencyGraph, getCalledWorkflows } from "../lib/graph.js";
 import { modifyWorkflows, printModifyResult } from "../lib/modifier.js";
 import { detectPRContext } from "../lib/detector.js";
 import { collectWarnings, printWarnings } from "../lib/warnings.js";
-import { dispatchLines, prCreateLines } from "../lib/instructions.js";
+import {
+  DEFAULT_PR_LABEL,
+  dispatchLines,
+  effectivePRLabels,
+  prCreateLines,
+} from "../lib/instructions.js";
 import { parseJobKey } from "../types.js";
 import { TEST_BRANCH_SUFFIX, findInstrumentedCommit } from "../lib/branch.js";
 
@@ -15,12 +20,20 @@ export const enableCommand = new Command("enable")
   .option("--keep-labels", "Preserve label-based conditions")
   .option(
     "--pr-label <labels...>",
-    "Labels to put on the test PR (e.g. a repo's CI-opt-in label)",
+    `Extra labels to put on the test PR (on top of ${DEFAULT_PR_LABEL})`,
+  )
+  .option(
+    "--no-run-ci-label",
+    `Do not add the default ${DEFAULT_PR_LABEL} label to the test PR`,
   )
   .action(
     async (
       jobs: string[],
-      options: { keepLabels?: boolean; prLabel?: string[] },
+      options: {
+        keepLabels?: boolean;
+        prLabel?: string[];
+        runCiLabel?: boolean;
+      },
     ) => {
       // Validate job selectors format
       for (const job of jobs) {
@@ -117,6 +130,10 @@ export const enableCommand = new Command("enable")
         enabledJobs,
         calledWorkflows,
         modifyResult,
+        prLabels: effectivePRLabels({
+          prLabels: options.prLabel,
+          includeDefaultLabel: options.runCiLabel,
+        }),
       });
 
       // Output
@@ -151,7 +168,11 @@ Created by \`pipeline enable\` from [${currentBranch}](../tree/${currentBranch})
       console.log("  git push -u origin HEAD");
 
       if (needsPRContext) {
-        for (const line of prCreateLines(options.prLabel)) console.log(line);
+        for (const line of prCreateLines({
+          prLabels: options.prLabel,
+          includeDefaultLabel: options.runCiLabel,
+        }))
+          console.log(line);
       } else {
         for (const line of dispatchLines(
           workflowsToRun,
