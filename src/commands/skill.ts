@@ -10,7 +10,36 @@ branch. The core loop is: **enable → push → watch → fix → update → pus
 
 ## Initial Setup
 
-### 1. Enable the jobs you want to test
+### 1. Trace the system under test's import and invocation graph
+
+Before running \`pipeline enable\`, read the code and configuration to trace how
+the system under test is actually reached. Use \`pipeline list\` to find job
+selectors, then follow the relevant edges in both directions:
+
+- Walk upstream from the target job through every reusable-workflow
+  \`uses: ./.github/workflows/<name>.yml\` call to the top-level workflow and event that
+  starts it. Include each caller's transitive \`needs:\` dependencies.
+- Follow the target's steps into local actions, scripts, configuration, and
+  source imports that reach the behavior being tested. Identify setup jobs and
+  artifact producers required by that path, including dependencies not declared
+  in \`needs:\`.
+- Trace gates and values across those boundaries: event/path filters, job and
+  step \`if:\` conditions, labels, changed-file outputs, \`with:\` inputs,
+  secrets, permissions, and artifacts. Determine what the test branch and event
+  must supply for the target steps to execute.
+
+For example, Evergreen's \`ci.yml\` calls reusable frontend workflows; the path
+to nested tests is \`ci.yml → frontend-full.yml → frontend-tests.yml\`.
+The caller supplies changed-file inputs and artifacts from \`prepare-frontend\`.
+Simply enabling a job in a called frontend workflow does not prove it will run:
+the caller and its prerequisites must execute with the required inputs. Read
+the current checkout to establish the actual chain; filenames can change.
+
+Summarize the entrypoint, caller chain, prerequisites, and remaining gates before
+choosing jobs. Pipeline resolves workflow dependencies, but it does not replace
+this inspection of the system under test.
+
+### 2. Enable the jobs you want to test
 
 \`\`\`bash
 pipeline enable <workflow>:<job> [<workflow>:<job> ...]
@@ -19,9 +48,13 @@ pipeline enable <workflow>:<job> [<workflow>:<job> ...]
 This modifies \`.github/workflows/\` to only run your target jobs (plus their
 dependencies) and prints the commands to create a test branch.
 
-Use \`pipeline list\` to see available jobs.
+Review the enabled-job list, warnings, and \`git diff -- .github/workflows\`
+against the graph you traced. Confirm that every required caller and setup job
+is enabled, inputs and artifacts still flow to the target, and called workflows
+remain \`workflow_call\`-only. Resolve any missing prerequisites before pushing;
+do not bypass a gate that is itself under test just to get a green run.
 
-### 2. Create the test branch and push
+### 3. Create the test branch and push
 
 \`\`\`bash
 git checkout -b <branch>-test-ci
@@ -30,7 +63,7 @@ git commit -m $'### DO NOT MERGE\\n\\nTest CI for jobs: ...'
 git push -u origin HEAD
 \`\`\`
 
-### 3. Create a PR (if needed)
+### 4. Create a PR (if needed)
 
 Some workflows require PR context (e.g. \`pull_request\` triggers). Pipeline
 detects this and tells you. If needed:
@@ -73,7 +106,7 @@ gh run rerun <run-id>
 If a run comes back entirely skipped, read the first gating job's logs before
 assuming the instrumentation is wrong.
 
-### 4. Watch the workflow run
+### 5. Watch the workflow run
 
 For push-triggered workflows, pipeline prints a one-liner to dispatch and watch:
 
@@ -88,6 +121,11 @@ Watch it with:
 \`\`\`bash
 gh run watch
 \`\`\`
+
+Inspect the target job's steps and logs to confirm that the behavior under test
+actually executed. A green workflow or successful caller is insufficient if the
+target job or relevant steps were skipped. Trace a skip back through the caller
+chain and gates before retrying.
 
 ## The Debug Loop
 
